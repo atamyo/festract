@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Tesseract Test</title>
+        <script src="https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js"></script>
+    </head>
+    <body>
+        <input type="text" id="url" placeholder="Image URL" />
+        <input type="button" id="go_button" value="Run" />
+        <div id="ocr_image"> </div>
+        <div id="ocr_results"> </div>
+        <div id="ocr_status"> </div>        
+    </body>
+</html>
+
+<script>
+
+document.getElementById("go_button")
+.addEventListener("click", function(e) {
+    var url = document.getElementById("url").value;
+    dispImage(url);
+    runOCR(url);
+});
+
+function dispImage(url) {
+    document.getElementById("ocr_image")
+    .innerHTML = "Parsing text from the following image:<br><img src='" + url + "'>";
+}
+
+function runOCR(url) {
+    Tesseract.recognize(url)
+        .then(function(result) {
+            document.getElementById("ocr_results")
+            .innerText = result.text;
+        }).progress(function(result) {
+            document.getElementById("ocr_status")
+            .innerText = result["status"] + " (" +
+            (result["progress"] * 100) + "%)";
+        });
+    }
+</script>
+        
