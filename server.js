@@ -1,6 +1,6 @@
 // There are going to be lots of comments because I am Node.js noob rn
 
-// Require/import the HTTP module
+// Load the HTTP library
 var http = require('http');
 
 // Define which port we want to listen to
@@ -11,7 +11,7 @@ function handleRequest(request, response) {
 	response.end("woooo");
 }
 
-// Create server
+// Create an HTTP server to handle requests and send responses
 var server = http.createServer(handleRequest);
 
 // Start server
