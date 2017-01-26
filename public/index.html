@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>Tesseract Test</title>
+        <title>Festract</title>
         <link href="styles/style.css" rel="stylesheet" type="text/css">
         <script src="https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
@@ -12,7 +12,7 @@
         <input type="text" id="url" placeholder="Image URL" />
         <input type="button" id="go_button" value="Run" />
         <div id="create_playlist">
-            <a href="/create_playlist">Create Festival Playlist on Spotify</a>
+            <a href="/create_playlist">Login to Spotify</a>
         </div> 
         <div id="real_create_playlist">
             <input type="button" id="real_create_playlist" value="Create Festival Playlist on Spotify" />   
@@ -27,6 +27,20 @@
 
 <script>
 
+/**
+ * Obtains parameters from the hash of the URL
+ * @return Object
+ */
+function getHashParams() {
+    var hashParams = {};
+    var e, r = /([^&;=]+)=?([^&;]*)/g,
+        q = window.location.hash.substring(1);
+    while ( e = r.exec(q)) {
+        hashParams[e[1]] = decodeURIComponent(e[2]);
+    }
+    return hashParams;
+}
+
 var testArtists = ["beyonce", "radiohead"];
 
 document.getElementById("go_button")
@@ -39,10 +53,22 @@ document.getElementById("go_button")
 
 document.getElementById("real_create_playlist")
 .addEventListener("click", function(e) {
-    searchArtists(testArtists, function(artist) {
-        console.log("searching...");
-        getTopTrack(artist, function(track) {
-            console.log("found track: " + track);
+    var params = getHashParams();
+
+    var access_token = params.access_token,
+        refresh_token = params.refresh_token,
+        error = params.error;
+
+    getUsername(access_token, function(user) {
+        var playlistName = namePlaylist();
+        createPlaylist(user, playlistName, access_token, function(playlist) {
+            searchArtists(testArtists, function(artist) {
+                getTopTrack(artist, function(track) {
+                    addTrack(user, playlist, track, access_token, function() {
+                        console.log("we did it fam");
+                    });
+                });
+            });
         });
     });
 });
@@ -66,6 +92,15 @@ function runOCR(url) {
     
     }
 
+// Create Playlist name from date and time string
+function namePlaylist() {
+    console.log("generating playlist name");
+    var d = new Date();
+    var name = "Festract - " + d.toString();
+    console.log("playlist name: " + name);
+    return name;
+}
+
 // Convert gross OCR results into a list
 function createArtistList(rawText) {
     var separators = /\s\W\s/;
@@ -81,24 +116,71 @@ function createArtistList(rawText) {
     */
 }
 
-// Search for artists on Spotify
-function searchArtists(artists, callback) {
-    document.getElementById("search_artists_test")
-    .innerText = "searchin'";
-    var artist = artists[0];
-    var url = "https://api.spotify.com/v1/search?q=" + artist + "&type=artist";
+// Get Spotify username of currently logged in user
+function getUsername(accessToken, callback) {
+    console.log("finding user id...");
+    var url = "https://api.spotify.com/v1/me";
 
     $.ajax(url, {
         method: 'GET',
         dataType: 'json',
+        headers: {
+            'Authorization': 'Bearer ' + accessToken
+        }, 
         success: function(r) {
-            console.log("searched for " + artist + " at " + url);
-            callback(r.artists.items[0].id);
+            console.log("got username: " + r.id);
+            callback(r.id);
         }
     });
 }
 
-// Get artist's top track on Spotify
+// Create Spotify playlist
+function createPlaylist(userID, name, accessToken, callback) {
+    console.log("tryna make a playlist...");
+    var url = "https://api.spotify.com/v1/users/" + userID + "/playlists";
+
+    $.ajax(url, {
+        method: 'POST',
+        data: JSON.stringify({
+            'name': name,
+            'public': false
+        }),
+        dataType: 'json',
+        headers: {
+            'Authorization': 'Bearer ' + accessToken,
+            'Content-Type': 'application/json'
+        },
+        success: function(r) {
+            console.log("created playlist");
+            callback(r.id);
+        },
+        error: function(r) {
+            console.log("createPlaylist oh noez");
+            callback(null);
+        }
+    });
+}
+
+// Search for artists on Spotify
+function searchArtists(artists, callback) {
+    var artist = "";
+
+    for (var i = 0; i < artists.length; i++) {
+        artist = artists[i];
+        var url = "https://api.spotify.com/v1/search?q=" + artist + "&type=artist";
+
+        $.ajax(url, {
+            method: 'GET',
+            dataType: 'json',
+            success: function(r) {
+                console.log("searched for " + artist + " at " + url);
+                callback(r.artists.items[0].id);
+            }
+        });
+    }
+}
+
+// Get Spotify URI of artist's top track
 function getTopTrack(artistID, callback) {
     console.log("need to find top track for " + artistID);
 
@@ -108,7 +190,36 @@ function getTopTrack(artistID, callback) {
         method: 'GET',
         dataType: 'json',
         success: function(r) {
-            callback(r.tracks[0].id);
+            callback(r.tracks[0].uri);
+        }
+    });
+}
+
+// Create JSON array of Spotify track URIs
+function createTrackList() {
+    console.log("soon...........");
+}
+
+// Add Spotify track to playlist
+function addTrack(userID, playlistID, trackURI, accessToken, callback) {
+    // TODO pass json array of tracks in request body
+    console.log("tryna add track " + trackURI + " as user " + userID + " in playlist " + playlistID + " with access token " + accessToken);
+
+    var url = "https://api.spotify.com/v1/users/" + userID + "/playlists/" + playlistID + "/tracks?uris=" + encodeURIComponent(trackURI);
+
+    $.ajax(url, {
+        method: 'POST',
+        dataType: 'json',
+        headers: {
+            'Authorization': 'Bearer ' + accessToken
+        },
+        success: function(r) {
+            console.log("ayy added the track");
+            callback(r.id);
+        },
+        error: function(r) {
+            console.log("addTrack oh noez");
+            callback(null);
         }
     });
 }
@@ -124,13 +235,6 @@ function clearResults() {
     document.getElementById("nice_results")
     .innerHTML = " ";
 }
-/*
-// Authorize Spotify user
-function doLogin() {
-
-}
-*/
-// Generate Spotify playlist
 
 </script>
         
