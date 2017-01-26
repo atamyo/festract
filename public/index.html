@@ -5,36 +5,49 @@
         <title>Tesseract Test</title>
         <link href="styles/style.css" rel="stylesheet" type="text/css">
         <script src="https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
     </head>
     <body onload="">
         <input type="text" id="url" placeholder="Image URL" />
         <input type="button" id="go_button" value="Run" />
         <div id="create_playlist">
             <a href="/create_playlist">Create Festival Playlist on Spotify</a>
-        </div>    
+        </div> 
+        <div id="real_create_playlist">
+            <input type="button" id="real_create_playlist" value="Create Festival Playlist on Spotify" />   
         <div id="ocr_image"> </div>
         <div id="ocr_results"> </div>
         <div id="ocr_status"> </div>  
-        <div id="nice_results"> </div>  
+        <div id="nice_results"> </div>
+        <div id="search_artists_test"> </div>  
+        <div id="top_track_test"> </div>
     </body>
 </html>
 
 <script>
 
+var testArtists = ["beyonce", "radiohead"];
+
 document.getElementById("go_button")
 .addEventListener("click", function(e) {
     clearResults();
     var url = document.getElementById("url").value;
-    dispImage(url);
+    displayImage(url);
     var textOCR = runOCR(url);
 });
 
-document.getElementById("create_playlist")
+document.getElementById("real_create_playlist")
 .addEventListener("click", function(e) {
-    doLogin();
+    searchArtists(testArtists, function(artist) {
+        console.log("searching...");
+        getTopTrack(artist, function(track) {
+            console.log("found track: " + track);
+        });
+    });
 });
 
-function dispImage(url) {
+function displayImage(url) {
     document.getElementById("ocr_image")
     .innerHTML = "Parsing text from the following image:<br><img src='" + url + "' class='responsive-image'>";
 }
@@ -66,6 +79,38 @@ function createArtistList(rawText) {
     document.getElementById("nice_results")
     .innerText = listString;
     */
+}
+
+// Search for artists on Spotify
+function searchArtists(artists, callback) {
+    document.getElementById("search_artists_test")
+    .innerText = "searchin'";
+    var artist = artists[0];
+    var url = "https://api.spotify.com/v1/search?q=" + artist + "&type=artist";
+
+    $.ajax(url, {
+        method: 'GET',
+        dataType: 'json',
+        success: function(r) {
+            console.log("searched for " + artist + " at " + url);
+            callback(r.artists.items[0].id);
+        }
+    });
+}
+
+// Get artist's top track on Spotify
+function getTopTrack(artistID, callback) {
+    console.log("need to find top track for " + artistID);
+
+    var url = "https://api.spotify.com/v1/artists/" + artistID + "/top-tracks?country=US";
+
+    $.ajax(url, {
+        method: 'GET',
+        dataType: 'json',
+        success: function(r) {
+            callback(r.tracks[0].id);
+        }
+    });
 }
 
 // Clear current image and details
