@@ -1,27 +1,23 @@
 // Get Spotify username of currently logged in user
-function getUsername(accessToken, callback) {
+function getUsername(accessToken) {
     console.log("finding user id...");
-    var url = "https://api.spotify.com/v1/me";
 
-    $.ajax(url, {
+    return $.ajax({
+        url: 'https://api.spotify.com/v1/me',
         method: 'GET',
         dataType: 'json',
         headers: {
             'Authorization': 'Bearer ' + accessToken
-        }, 
-        success: function(r) {
-            console.log("got username: " + r.id);
-            callback(r.id);
         }
     });
 }
 
 // Create Spotify playlist
-function createPlaylist(userID, name, accessToken, callback) {
+function createPlaylist(userID, name, accessToken) {
     console.log("tryna make a playlist...");
-    var url = "https://api.spotify.com/v1/users/" + userID + "/playlists";
 
-    $.ajax(url, {
+    return $.ajax({
+        url: 'https://api.spotify.com/v1/users/' + userID + '/playlists',
         method: 'POST',
         data: JSON.stringify({
             'name': name,
@@ -31,77 +27,69 @@ function createPlaylist(userID, name, accessToken, callback) {
         headers: {
             'Authorization': 'Bearer ' + accessToken,
             'Content-Type': 'application/json'
-        },
-        success: function(r) {
-            console.log("created playlist");
-            callback(r.id);
-        },
-        error: function(r) {
-            console.log("createPlaylist oh noez");
-            callback(null);
         }
     });
 }
 
-// Search for artists on Spotify
-function searchArtists(artists, callback) {
-    var artist = "";
+// Search for an artist on Spotify
+function searchArtist(artist) {
+    console.log("tryna search for artists...");
 
-    for (var i = 0; i < artists.length; i++) {
-        artist = artists[i];
-        var url = "https://api.spotify.com/v1/search?q=" + artist + "&type=artist";
+    return $.ajax({
+        url: 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(artist) + '&type=artist',
+        method: 'GET',
+        dataType: 'json'
+    });
 
-        $.ajax(url, {
-            method: 'GET',
-            dataType: 'json',
-            success: function(r) {
-                console.log("searched for " + artist + " at " + url);
-                callback(r.artists.items[0].id);
-            }
-        });
-    }
 }
 
 // Get Spotify URI of artist's top track
-function getTopTrack(artistID, callback) {
+function getTopTrack(artistID) {
     console.log("need to find top track for " + artistID);
 
-    var url = "https://api.spotify.com/v1/artists/" + artistID + "/top-tracks?country=US";
-
-    $.ajax(url, {
+    return $.ajax({
+        url: 'https://api.spotify.com/v1/artists/' + artistID + '/top-tracks?country=US',
         method: 'GET',
         dataType: 'json',
-        success: function(r) {
-            callback(r.tracks[0].uri);
-        }
     });
 }
 
 // Create JSON array of Spotify track URIs
-function createTrackList() {
-    console.log("soon...........");
+function pushTracks(trackURI, tracks) {
+    console.log("create json array");
+    var tracks = {
+        uris: []
+    };
+
+    tracks.uris.push()
 }
 
 // Add Spotify track to playlist
-function addTrack(userID, playlistID, trackURI, accessToken, callback) {
-    // TODO pass json array of tracks in request body
-    console.log("tryna add track " + trackURI + " as user " + userID + " in playlist " + playlistID + " with access token " + accessToken);
+function addTracks(userID, playlistID, trackURIs, accessToken) {
+    console.log("tryna add track as user " + userID + " in playlist " + playlistID + " with access token " + accessToken);
 
-    var url = "https://api.spotify.com/v1/users/" + userID + "/playlists/" + playlistID + "/tracks?uris=" + encodeURIComponent(trackURI);
+    $.ajax({
+        url: 'https://api.spotify.com/v1/users/' + userID + '/playlists/' + playlistID + '/tracks',
+        method: 'POST',
+        dataType: 'json',
+        data: trackURIs,
+        headers: {
+            'Authorization': 'Bearer ' + accessToken,
+            'Content-Type': 'application/json'
+        }
+    });
+}
 
-    $.ajax(url, {
+// Add Spotify track to playlist
+function addTrack(userID, playlistID, trackURI, accessToken) {
+    console.log("tryna add track as user " + userID + " in playlist " + playlistID + " with access token " + accessToken);
+
+    $.ajax({
+        url: 'https://api.spotify.com/v1/users/' + userID + '/playlists/' + playlistID + '/tracks?uris=' + encodeURIComponent(trackURI),
         method: 'POST',
         dataType: 'json',
         headers: {
-            'Authorization': 'Bearer ' + accessToken
-        },
-        success: function(r) {
-            console.log("ayy added the track");
-            callback(r.id);
-        },
-        error: function(r) {
-            console.log("addTrack oh noez");
-            callback(null);
+            'Authorization': 'Bearer ' + accessToken,
         }
     });
 }

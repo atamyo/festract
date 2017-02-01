@@ -43,6 +43,7 @@ function getHashParams() {
 }
 
 var testArtists = ["beyonce", "radiohead"];
+var testOCRArtists;
 
 document.getElementById("go_button")
 .addEventListener("click", function(e) {
@@ -60,18 +61,39 @@ document.getElementById("real_create_playlist")
         refresh_token = params.refresh_token,
         error = params.error;
 
-    getUsername(access_token, function(user) {
-        var playlistName = namePlaylist();
-        createPlaylist(user, playlistName, access_token, function(playlist) {
-            searchArtists(testArtists, function(artist) {
-                getTopTrack(artist, function(track) {
-                    addTrack(user, playlist, track, access_token, function() {
-                        console.log("we did it fam");
+    var userID = "";
+    var playlistID = "";
+    //var tracks = {uris: []};
+
+    
+    getUsername(access_token)
+        .then(function(user) {
+            userID = user.id;
+            createPlaylist(user.id, namePlaylist(), access_token)
+            .then(function(playlist) {
+
+            playlistID = playlist.id;
+
+            for (let i of testArtists) {
+                searchArtist(i)
+                .then(function(artist) {
+                    /*
+                    getTopTrack(artist.artists.items[0].id)
+                    .then(function(track) {
+                        tracks.uris.push(track.tracks[0].uri);
                     });
+                    */
+
+                    getTopTrack(artist.artists.items[0].id)
+                    .then(function(track) {
+                        addTrack(userID, playlistID, track.tracks[0].uri, access_token);
+                    })
                 });
-            });
+            }
+
         });
-    });
+        });           
+
 });
 
 function displayImage(url) {
@@ -84,7 +106,7 @@ function runOCR(url) {
         .then(function(result) {
             document.getElementById("ocr_results")
             .innerText = result.text;
-            createArtistList(result.text);
+            testOCRArtists = createArtistList(result.text);
         }).progress(function(result) {
             document.getElementById("ocr_status")
             .innerText = result["status"] + " (" +
@@ -106,6 +128,7 @@ function namePlaylist() {
 function createArtistList(rawText) {
     var separators = /\s\W\s/;
     var list = rawText.split(separators);
+    return list;
     /*
     var listString = "";
     var i;
