@@ -16,7 +16,7 @@
             <a href="/create_playlist">Login to Spotify</a>
         </div> 
         <div id="real_create_playlist">
-            <input type="button" id="real_create_playlist" value="Create Festival Playlist on Spotify" />   
+            <input type="button" id="real_create_playlist_btn" value="Create Festival Playlist on Spotify" />   
         <div id="ocr_image"> </div>
         <div id="ocr_results"> </div>
         <div id="ocr_status"> </div>  
@@ -42,7 +42,7 @@ function getHashParams() {
     return hashParams;
 }
 
-var testArtists = ["beyonce", "radiohead"];
+var testArtists = ["beyonce", "radiohead", "oh wonder"];
 var testOCRArtists;
 
 document.getElementById("go_button")
@@ -53,7 +53,7 @@ document.getElementById("go_button")
     var textOCR = runOCR(url);
 });
 
-document.getElementById("real_create_playlist")
+document.getElementById("real_create_playlist_btn")
 .addEventListener("click", function(e) {
     var params = getHashParams();
 
@@ -63,9 +63,15 @@ document.getElementById("real_create_playlist")
 
     var userID = "";
     var playlistID = "";
-    //var tracks = {uris: []};
 
-    
+    var requestLimit = 20;
+
+    console.log("access token: " + access_token + " error: " + error);
+
+    if (!access_token) {
+        console.log("auth error");
+        //window.location.replace("/create_playlist");
+    } else {
     getUsername(access_token)
         .then(function(user) {
             userID = user.id;
@@ -74,16 +80,9 @@ document.getElementById("real_create_playlist")
 
             playlistID = playlist.id;
 
-            for (let i of testArtists) {
+            for (let i of testArtists.slice(0, requestLimit)) {
                 searchArtist(i)
                 .then(function(artist) {
-                    /*
-                    getTopTrack(artist.artists.items[0].id)
-                    .then(function(track) {
-                        tracks.uris.push(track.tracks[0].uri);
-                    });
-                    */
-
                     getTopTrack(artist.artists.items[0].id)
                     .then(function(track) {
                         addTrack(userID, playlistID, track.tracks[0].uri, access_token);
@@ -93,7 +92,7 @@ document.getElementById("real_create_playlist")
 
         });
         });           
-
+    }
 });
 
 function displayImage(url) {
