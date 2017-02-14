@@ -4,19 +4,13 @@
         <meta charset="utf-8">
         <title>Festract</title>
         <link href="styles/style.css" rel="stylesheet" type="text/css">
-        <script src="spotify.js"></script>
         <script src="https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js"></script>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-
     </head>
     <body onload="">
         <input type="text" id="url" placeholder="Image URL" />
         <input type="button" id="go_button" value="Run" />
         <div id="create_playlist">
-            <a href="/create_playlist">Login to Spotify</a>
-        </div> 
-        <div id="real_create_playlist">
-            <input type="button" id="real_create_playlist_btn" value="Create Festival Playlist on Spotify" />   
+            <a href="/create_playlist">Create Spotify Playlist</a>
         <div id="ocr_image"> </div>
         <div id="ocr_results"> </div>
         <div id="ocr_status"> </div>  
@@ -32,6 +26,7 @@
  * Obtains parameters from the hash of the URL
  * @return Object
  */
+ /*
 function getHashParams() {
     var hashParams = {};
     var e, r = /([^&;=]+)=?([^&;]*)/g,
@@ -43,7 +38,9 @@ function getHashParams() {
 }
 
 var testArtists = ["beyonce", "radiohead", "oh wonder"];
+*/
 var testOCRArtists;
+
 
 document.getElementById("go_button")
 .addEventListener("click", function(e) {
@@ -51,48 +48,6 @@ document.getElementById("go_button")
     var url = document.getElementById("url").value;
     displayImage(url);
     var textOCR = runOCR(url);
-});
-
-document.getElementById("real_create_playlist_btn")
-.addEventListener("click", function(e) {
-    var params = getHashParams();
-
-    var access_token = params.access_token,
-        refresh_token = params.refresh_token,
-        error = params.error;
-
-    var userID = "";
-    var playlistID = "";
-
-    var requestLimit = 20;
-
-    console.log("access token: " + access_token + " error: " + error);
-
-    if (!access_token) {
-        console.log("auth error");
-        //window.location.replace("/create_playlist");
-    } else {
-    getUsername(access_token)
-        .then(function(user) {
-            userID = user.id;
-            createPlaylist(user.id, namePlaylist(), access_token)
-            .then(function(playlist) {
-
-            playlistID = playlist.id;
-
-            for (let i of testArtists.slice(0, requestLimit)) {
-                searchArtist(i)
-                .then(function(artist) {
-                    getTopTrack(artist.artists.items[0].id)
-                    .then(function(track) {
-                        addTrack(userID, playlistID, track.tracks[0].uri, access_token);
-                    })
-                });
-            }
-
-        });
-        });           
-    }
 });
 
 function displayImage(url) {
@@ -112,15 +67,6 @@ function runOCR(url) {
             (result["progress"] * 100) + "%)";
         });
     
-}
-
-// Create Playlist name from date and time string
-function namePlaylist() {
-    console.log("generating playlist name");
-    var d = new Date();
-    var name = "Festract - " + d.toString();
-    console.log("playlist name: " + name);
-    return name;
 }
 
 // Convert gross OCR results into a list
@@ -152,4 +98,3 @@ function clearResults() {
 }
 
 </script>
-        

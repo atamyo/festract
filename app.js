@@ -2,6 +2,7 @@ var path = require('path');
 var express = require('express');
 var request = require('request');
 var cookieParser = require('cookie-parser');
+var spotify = require('./spotify.js');
 require('dotenv').config();
 
 // Spotify API keys
@@ -35,7 +36,7 @@ app.use(express.static(path.join(__dirname + '/public')))
 	.use(cookieParser());
 
 app.get('/', function(req, res) {
-//	res.sendFile(path.resolve('public/index.html'));
+
 });
 
 app.get('/create_playlist', function(req, res) {
@@ -57,6 +58,8 @@ app.get('/callback', function(req, res) {
 	var state = req.query.state || null;
 	var storedState = req.cookies ? req.cookies[stateKey] : null;
 
+	var testArtists = ["beyonce", "radiohead", "oh wonder"];
+
 	// Request refresh and access tokens
 	if (state === null || state !== storedState) {
 		res.redirect('/#&error=state_mismatch');
@@ -75,24 +78,35 @@ app.get('/callback', function(req, res) {
 			json: true
 		};
 
+		//TODO: save me from this callback help
 		request.post(authOptions, function(error, response, body) {
 			if (!error && response.statusCode === 200) {
 				var access_token = body.access_token,
 					refresh_token = body.refresh_token;
 
-				var options = {
-					url: 'https://api.spotify.com/v1/me',
-					headers: {'Authorization': 'Bearer ' + access_token },
-					json: true
-				};
+				spotify.getUsername(access_token, function(err, user) {
+					if (err) return console.error(err);
 
-				// Use access token to access the Spotify Web API
-				request.get(options, function(error, response, body) {
-					console.log(body);
+					spotify.createPlaylist(namePlaylist(), user, access_token, function(err, playlist) {
+						if (err) return console.error(err);
+
+						spotify.searchArtists(testArtists, function(err, artist) {
+							if (err) return console.error("searchArtists error: " + err);
+
+							spotify.getTopTrack(artist, function(err, track) {
+								if (err) return console.error(err);
+
+								spotify.addTrack(track, user, playlist, access_token, function(err, data) {
+									if (err) return console.error(err);
+								});
+							});
+
+						});
+					});
 				});
 
-				res.redirect('/#access_token=' + access_token +
-					'&refresh_token=' + refresh_token);
+				res.redirect('/?access_token=' + encodeURIComponent(access_token) +
+					'&refresh_token=' + encodeURIComponent(refresh_token));
 			} else {
 				res.redirect('/#error=invalid_token');
 			}
@@ -103,7 +117,7 @@ app.get('/callback', function(req, res) {
 app.get('/refresh_token', function(req, res) {
 
 	// Request access token from refresh token
-	var refresh_token = req.query.refresh_token
+	var refresh_token = req.query.refresh_token;
 	var authOptions = {
 		url: 'https://accounts.spotify.com/api/token',
 		headers: {
@@ -131,3 +145,7 @@ var server = app.listen(app.get('port'), function() {
 	console.log('Listening on port ' + port);
 
 });
+
+var namePlaylist = function(name) {
+	return (name ? name : "Festract - " + (new Date().toString()));
+}
