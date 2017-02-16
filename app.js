@@ -1,7 +1,10 @@
+var fs = require('fs');
 var path = require('path');
 var express = require('express');
 var request = require('request');
+var fileUpload = require('express-fileupload');
 var cookieParser = require('cookie-parser');
+var Tesseract = require('tesseract.js');
 var spotify = require('./spotify.js');
 require('dotenv').config();
 
@@ -9,21 +12,6 @@ require('dotenv').config();
 var client_id = process.env.CLIENT_ID;
 var client_secret = process.env.CLIENT_SECRET;
 var redirect_uri = process.env.REDIRECT_URI;
-
-/**
- * Generates a random string containing numbers and letters
- * @param  {number} length The length of the string
- * @return {string} The generated string
- */
-var generateRandomString = function(length) {
-	var text = '';
-	var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-
-	for (var i = 0; i < length; i++) {
-		text += possible.charAt(Math.floor(Math.random() * possible.length));
-	}
-	return text;
-};
 
 var stateKey = 'spotify_auth_state';
 
@@ -33,10 +21,29 @@ const PORT = 8888;
 app.set('port', PORT);
 
 app.use(express.static(path.join(__dirname + '/public')))
-	.use(cookieParser());
+	.use(cookieParser()).use(fileUpload());
 
 app.get('/', function(req, res) {
 
+});
+
+app.post('/upload', function(req, res, next) {
+	
+	// Upload lineup image
+	var lineup = req.files.uploaded;
+	if (lineup.mimetype.substr(0,5) == 'image') {
+		var ext = lineup.mimetype.substr(6);
+		var lineupPath = path.join(__dirname + '/uploads/lineup.' + ext);
+		lineup.mv(lineupPath, function(err) {
+			if (err) {
+				res.status(500).send(err);
+			} else {
+				runOCR(lineupPath);
+			}
+		});
+	}
+
+	res.redirect('/');
 });
 
 app.get('/create_playlist', function(req, res) {
@@ -78,7 +85,7 @@ app.get('/callback', function(req, res) {
 			json: true
 		};
 
-		//TODO: save me from this callback help
+		//TODO: save me from this callback hell
 		request.post(authOptions, function(error, response, body) {
 			if (!error && response.statusCode === 200) {
 				var access_token = body.access_token,
@@ -145,6 +152,31 @@ var server = app.listen(app.get('port'), function() {
 	console.log('Listening on port ' + port);
 
 });
+
+/**
+ * Generates a random string containing numbers and letters
+ * @param  {number} length The length of the string
+ * @return {string} The generated string
+ */
+var generateRandomString = function(length) {
+	var text = '';
+	var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+	for (var i = 0; i < length; i++) {
+		text += possible.charAt(Math.floor(Math.random() * possible.length));
+	}
+	return text;
+};
+
+var runOCR = function(url) {
+	//console.log(url);
+    Tesseract.recognize(url)
+        .then(function(result) {
+            console.log(result.text);
+        }).catch(function(error) {
+        	console.error(error);
+        });
+}
 
 var namePlaylist = function(name) {
 	return (name ? name : "Festract - " + (new Date().toString()));
