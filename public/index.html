@@ -2,16 +2,34 @@
 <html>
     <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Festract creates a Spotify playlist from your festival of choice.">
         <title>Festract</title>
         <link href="styles/style.css" rel="stylesheet" type="text/css">
+        <!--link href="https://fonts.googleapis.com/css?family=Merriweather+Sans|Open+Sans" rel="stylesheet"-->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     </head>
     <body onload="">
-        <form action="/upload" enctype="multipart/form-data" method="post">
-            <!--input type="text" name="uploadImage" placeholder="Image URL" /-->
-            <input type="file" name="uploaded" />
-            <input type="submit" value="Upload" /> <input type="reset" value="Clear" />
-        </form>
-        <br>
-        <a href="/create_playlist">Create Spotify Playlist</a>
+        <div class="jumbotron text-center">
+            <div class="container">
+                <h1>Festract</h1>
+                <p id="prompt">Upload a picture of the music festival lineup you want to explore.</p>
+                <p>
+                    <form action="/upload" method="post" enctype="multipart/form-data" class="form-inline">
+                        <div class="form-group">
+                            <label class="sr-only" for="userImg">Image upload</label>
+                            <input type="file" id="userImg" name="uploaded">
+                        </div>
+                        <button type="submit" class="btn btn-default">Upload</button>
+                    </form>
+                </p>
+            </div>
+        </div>
+        <div class="container text-center">
+            <p>
+                <a href="/create_playlist" class="btn btn-default" role="button">Save Playlist to Spotify</a>
+            </p>
+            <!-- Resulting playlist preview will go here~ -->
+        </div>
     </body>
 </html>

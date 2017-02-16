@@ -1,5 +1,4 @@
-.responsive-image {
-	max-width: 100%;
-	display: block;
-	height: auto;
+.jumbotron {
+	background-color: #9ccc65 !important;
+	color: #212121 !important;
 }
