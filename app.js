@@ -15,6 +15,9 @@ var redirect_uri = process.env.REDIRECT_URI;
 
 var stateKey = 'spotify_auth_state';
 
+// TODO: replace this global variable lol
+var leggo;
+
 var app = express();
 const PORT = 8888;
 
@@ -28,7 +31,6 @@ app.get('/', function(req, res) {
 });
 
 app.post('/upload', function(req, res, next) {
-	
 	// Upload lineup image
 	var lineup = req.files.uploaded;
 	if (lineup.mimetype.substr(0,5) == 'image') {
@@ -65,7 +67,15 @@ app.get('/callback', function(req, res) {
 	var state = req.query.state || null;
 	var storedState = req.cookies ? req.cookies[stateKey] : null;
 
-	var testArtists = ["beyonce", "radiohead", "oh wonder"];
+	var testArtists = ["beyonce", "radiohead", "oh wonder", "9sxL-"];
+	var tracks = {uris: []};
+	//var numArtists = testArtists.length;
+	var numArtists = leggo.length;
+	var numValidArtists = 0;
+	var completed = -1;
+	var countSearchArtistsCalls = 0;
+	var countGetTopTrackCalls = 0;
+	console.log("number of artists to check: " + numArtists);
 
 	// Request refresh and access tokens
 	if (state === null || state !== storedState) {
@@ -97,17 +107,47 @@ app.get('/callback', function(req, res) {
 					spotify.createPlaylist(namePlaylist(), user, access_token, function(err, playlist) {
 						if (err) return console.error(err);
 
-						spotify.searchArtists(testArtists, function(err, artist) {
+						spotify.searchArtists(leggo, function(err, artist) {
+							countSearchArtistsCalls++;
+							console.log("checking artist " + countSearchArtistsCalls + " of " + numArtists);
+
 							if (err) return console.error("searchArtists error: " + err);
+							
+							numValidArtists++;
+
+							// Finished searching for artists
+							if (countSearchArtistsCalls === numArtists) {
+								completed = numValidArtists;
+								console.log("num valid artists: " + completed);
+							}
 
 							spotify.getTopTrack(artist, function(err, track) {
-								if (err) return console.error(err);
+								countGetTopTrackCalls++;
 
+								if (err) return console.error("getTopTrack error: " + err + " for artist");
+
+								
+								// TODO: Split tracks array by 100s
+								// TODO: Remove repeated tracks
+								if (countGetTopTrackCalls < 101) {
+									tracks.uris.push(track);	
+								}
+								
+
+								// All valid artists searched??
+								if (countGetTopTrackCalls === completed) {
+									spotify.addTracks(tracks, user, playlist, access_token, function(err, data) {
+										if (err) return console.error(err);
+										console.log("added first 100 tracks of " + countGetTopTrackCalls);
+									});
+								}
+																
+								/*
 								spotify.addTrack(track, user, playlist, access_token, function(err, data) {
 									if (err) return console.error(err);
 								});
+								*/
 							});
-
 						});
 					});
 				});
@@ -122,7 +162,6 @@ app.get('/callback', function(req, res) {
 });
 
 app.get('/refresh_token', function(req, res) {
-
 	// Request access token from refresh token
 	var refresh_token = req.query.refresh_token;
 	var authOptions = {
@@ -169,13 +208,39 @@ var generateRandomString = function(length) {
 };
 
 var runOCR = function(url) {
-	//console.log(url);
+	console.log("Parsing text from image...");
     Tesseract.recognize(url)
-        .then(function(result) {
+    	.progress(function(progress) {
+    		console.log(progress["status"] + " (" + (progress["progress"] * 100) + "%)");
+    	}).then(function(result) {
             console.log(result.text);
+            leggo = splitResults(spellCheck(result.text));
+            console.log(leggo);
         }).catch(function(error) {
         	console.error(error);
         });
+}
+
+var splitResults = function(result) {
+	// TODO: Add \n newline separator
+	var separator = /\s\W\s/;
+	var artists = result.split(separator);
+
+	//console.log("artist list: " + artists);
+	return artists;
+}
+
+var spellCheck = function(text) {
+	// Left parenthesis '(' to 'C'
+	text = text.replace(/\(/g, "C");
+	
+	// Zero '0' to 'O'
+	text = text.replace(/0/g, "O");
+
+	// 'ihe' to 'the'
+	text = text.replace(/ihe/gi, "the");
+
+	return text.toLowerCase();
 }
 
 var namePlaylist = function(name) {

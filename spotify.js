@@ -51,7 +51,7 @@ module.exports = {
 
 			request.get(options, function(error, response, body) {
 				if (error) return callback(error);
-				else if (typeof body.artists.items[0] === "undefined") return callback("Couldn't find artist " + artist);
+				else if (typeof body.artists.items[0] === "undefined") return callback("Couldn't find artist '" + artist + "'");
 
 				callback(null, body.artists.items[0].id);
 			});
@@ -66,6 +66,7 @@ module.exports = {
 
 		request.get(options, function(error, response, body) {
 			if (error) return callback(error);
+			else if (typeof body.tracks[0] === "undefined") return callback("Couldn't find track");
 
 			callback(null, body.tracks[0].uri);
 		});
@@ -85,6 +86,23 @@ module.exports = {
 
 			callback(null, body);
 		});
+	},
+
+	addTracks: function(trackURIs, userID, playlistID, accessToken, callback) {
+		var options = {
+			url: 'https://api.spotify.com/v1/users/' + userID + '/playlists/' + playlistID + '/tracks',
+			headers: {
+				'Authorization': 'Bearer ' + accessToken
+			},
+			form: JSON.stringify(trackURIs),
+			json: true
+		};
+
+		request.post(options, function(error, response, body) {
+			if (error) return callback(error);
+
+			callback(null, body);
+		});
+
 	}
-	
 };
