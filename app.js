@@ -68,10 +68,12 @@ app.get('/callback', function(req, res) {
 	var storedState = req.cookies ? req.cookies[stateKey] : null;
 
 	var testArtists = ["beyonce", "radiohead", "oh wonder", "9sxL-"];
-	var tracks = {uris: []};
+	var tracks = {};
+	var trax = {};
 	//var numArtists = testArtists.length;
 	var numArtists = leggo.length;
 	var numValidArtists = 0;
+	var numHundreds = 0;
 	var completed = -1;
 	var countSearchArtistsCalls = 0;
 	var countGetTopTrackCalls = 0;
@@ -118,6 +120,7 @@ app.get('/callback', function(req, res) {
 							// Finished searching for artists
 							if (countSearchArtistsCalls === numArtists) {
 								completed = numValidArtists;
+								numHundreds = Math.floor(completed / 100);
 								console.log("num valid artists: " + completed);
 							}
 
@@ -126,20 +129,29 @@ app.get('/callback', function(req, res) {
 
 								if (err) return console.error("getTopTrack error: " + err + " for artist");
 
+								numHundreds = Math.floor(countGetTopTrackCalls / 100);
+								tracks["key" + numHundreds].uris.push(track);
+
 								
 								// TODO: Split tracks array by 100s
 								// TODO: Remove repeated tracks
+								/*
 								if (countGetTopTrackCalls < 101) {
 									tracks.uris.push(track);	
 								}
+								*/
 								
 
 								// All valid artists searched??
 								if (countGetTopTrackCalls === completed) {
+									// forEach(tracks) addtracks
+
+									/*
 									spotify.addTracks(tracks, user, playlist, access_token, function(err, data) {
 										if (err) return console.error(err);
 										console.log("added first 100 tracks of " + countGetTopTrackCalls);
 									});
+									*/
 								}
 																
 								/*
@@ -223,7 +235,7 @@ var runOCR = function(url) {
 
 var splitResults = function(result) {
 	// TODO: Add \n newline separator
-	var separator = /\s\W\s/;
+	var separator = /\s\W\s|\s\d\s/;
 	var artists = result.split(separator);
 
 	//console.log("artist list: " + artists);
@@ -239,6 +251,9 @@ var spellCheck = function(text) {
 
 	// 'ihe' to 'the'
 	text = text.replace(/ihe/gi, "the");
+
+	// \n to ' - '
+	text = text.replace(/\n/g, " - ");
 
 	return text.toLowerCase();
 }

@@ -51,6 +51,8 @@ module.exports = {
 
 			request.get(options, function(error, response, body) {
 				if (error) return callback(error);
+				else if (typeof body.artists === "undefined") return callback("some kinda searchArtists error");
+
 				else if (typeof body.artists.items[0] === "undefined") return callback("Couldn't find artist '" + artist + "'");
 
 				callback(null, body.artists.items[0].id);
@@ -66,7 +68,18 @@ module.exports = {
 
 		request.get(options, function(error, response, body) {
 			if (error) return callback(error);
-			else if (typeof body.tracks[0] === "undefined") return callback("Couldn't find track");
+
+
+/*
+			else if (typeof body === "undefined" ){
+				console.log(body);
+				return callback("some kinda getTopTrack error");
+			} */
+
+			else if (typeof body.tracks === "undefined" || typeof body.tracks[0] === "undefined") {
+				console.log(body);
+				return callback("Couldn't find track");
+			}
 
 			callback(null, body.tracks[0].uri);
 		});
