@@ -70,7 +70,7 @@ app.get('/callback', function(req, res) {
 	//var testArtists = ["beyonce", "radiohead", "oh wonder", "9sxL-"];
 	var tracks = [];
 	//var artists = testArtists;
-	var artists = leggo.slice(0,50);
+	var artists = leggo.slice(0,100);
 
 	var artistsToSearch = artists.length;
 	var artistsSearched = 0;
@@ -129,6 +129,14 @@ app.get('/callback', function(req, res) {
 										console.log('addTracks calls = ' + numTimesAddedTrack);
 										*/
 										if (err) return console.error(err);
+/*
+										if (data.retryAfter > 0) {
+											setTimeout(function(tracks, user, playlist, access_token) {
+												Spotify.addTracks(tracks, user, playlist, access_token, function(err, data) {
+													if (err) return console.error(err);
+												})
+											}, data.retryAfter * 1000 + 1000);
+										}*/
 									});
 								}
 							});

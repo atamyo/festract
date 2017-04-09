@@ -100,9 +100,27 @@ module.exports = {
 		request.post(options, function(error, response, body) {
 			if (error) return callback(error);
 
+			var data = {statusCode: response.statusCode, retryAfter: 0};
+
 			console.log('addTracks statusCode = ' + response.statusCode);
-			if (response.statusCode === 201) console.log('Added tracks!');
-			callback(null, body);
+			//console.log(response.headers);
+			if (response.statusCode === 201) {
+				data.retryAfter = -1;
+			}
+
+			else if (response.statusCode === 429) {
+				// TODO: wait until rate limit is over, then try adding tracks again
+				console.log('Need to wait ' + response.headers['retry-after'] + ' seconds');
+				data.retryAfter = response.headers['retry-after'];
+				setTimeout(function() {
+					request.post(options, function(error, response, body) {
+						if (error) return callback(error);
+						console.log('lmao');
+					});
+				}, data.retryAfter * 1000 + 1000);
+
+			}
+			callback(null, data);
 		});
 
 	}
