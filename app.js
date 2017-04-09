@@ -5,7 +5,7 @@ var request = require('request');
 var fileUpload = require('express-fileupload');
 var cookieParser = require('cookie-parser');
 var Tesseract = require('tesseract.js');
-var spotify = require('./spotify.js');
+var Spotify = require('./spotify.js');
 require('dotenv').config();
 
 // Spotify API keys
@@ -67,17 +67,15 @@ app.get('/callback', function(req, res) {
 	var state = req.query.state || null;
 	var storedState = req.cookies ? req.cookies[stateKey] : null;
 
-	var testArtists = ["beyonce", "radiohead", "oh wonder", "9sxL-"];
-	var tracks = {};
-	var trax = {};
-	//var numArtists = testArtists.length;
-	var numArtists = leggo.length;
-	var numValidArtists = 0;
-	var numHundreds = 0;
-	var completed = -1;
-	var countSearchArtistsCalls = 0;
-	var countGetTopTrackCalls = 0;
-	console.log("number of artists to check: " + numArtists);
+	//var testArtists = ["beyonce", "radiohead", "oh wonder", "9sxL-"];
+	var tracks = [];
+	//var artists = testArtists;
+	var artists = leggo.slice(0,50);
+
+	var artistsToSearch = artists.length;
+	var artistsSearched = 0;
+
+	//var numTimesAddedTrack = 0; // Should be 1
 
 	// Request refresh and access tokens
 	if (state === null || state !== storedState) {
@@ -97,68 +95,42 @@ app.get('/callback', function(req, res) {
 			json: true
 		};
 
-		//TODO: save me from this callback hell
 		request.post(authOptions, function(error, response, body) {
 			if (!error && response.statusCode === 200) {
 				var access_token = body.access_token,
 					refresh_token = body.refresh_token;
 
-				spotify.getUsername(access_token, function(err, user) {
+				// Generate playlist
+				Spotify.getUsername(access_token, function(err, user) {
 					if (err) return console.error(err);
 
-					spotify.createPlaylist(namePlaylist(), user, access_token, function(err, playlist) {
+					Spotify.createPlaylist(namePlaylist(), user, access_token, function(err, playlist) {
 						if (err) return console.error(err);
 
-						spotify.searchArtists(leggo, function(err, artist) {
-							countSearchArtistsCalls++;
-							console.log("checking artist " + countSearchArtistsCalls + " of " + numArtists);
+						artists.forEach(function(artist) {
+							Spotify.getTopTrack(artist, access_token, function(err, track) {
+								var trackURI = new String(track);
 
-							if (err) return console.error("searchArtists error: " + err);
-							
-							numValidArtists++;
+								artistsSearched++;
+								console.log('Processed ' + artistsSearched + ' of ' + artistsToSearch + ' artists.');
 
-							// Finished searching for artists
-							if (countSearchArtistsCalls === numArtists) {
-								completed = numValidArtists;
-								numHundreds = Math.floor(completed / 100);
-								console.log("num valid artists: " + completed);
-							}
+								if (err && artistsSearched != artistsToSearch) return console.error(err);
 
-							spotify.getTopTrack(artist, function(err, track) {
-								countGetTopTrackCalls++;
+								else if (!err && artistsSearched != artistsToSearch) tracks.push(trackURI);
 
-								if (err) return console.error("getTopTrack error: " + err + " for artist");
+								if (artistsSearched == artistsToSearch) {
 
-								numHundreds = Math.floor(countGetTopTrackCalls / 100);
-								tracks["key" + numHundreds].uris.push(track);
-
-								
-								// TODO: Split tracks array by 100s
-								// TODO: Remove repeated tracks
-								/*
-								if (countGetTopTrackCalls < 101) {
-									tracks.uris.push(track);	
-								}
-								*/
-								
-
-								// All valid artists searched??
-								if (countGetTopTrackCalls === completed) {
-									// forEach(tracks) addtracks
-
-									/*
-									spotify.addTracks(tracks, user, playlist, access_token, function(err, data) {
+									if (!err) tracks.push(trackURI);							
+									
+									Spotify.addTracks(tracks, user, playlist, access_token, function(err, data) {
+										//console.log('Attempting to add tracks: ' + tracks);
+										/*
+										numTimesAddedTrack++;
+										console.log('addTracks calls = ' + numTimesAddedTrack);
+										*/
 										if (err) return console.error(err);
-										console.log("added first 100 tracks of " + countGetTopTrackCalls);
 									});
-									*/
 								}
-																
-								/*
-								spotify.addTrack(track, user, playlist, access_token, function(err, data) {
-									if (err) return console.error(err);
-								});
-								*/
 							});
 						});
 					});

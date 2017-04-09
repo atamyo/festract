@@ -1,4 +1,5 @@
 uploads
 node_modules
+junk
 *.env
 eng.traineddata
