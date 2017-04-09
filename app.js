@@ -6,6 +6,7 @@ var fileUpload = require('express-fileupload');
 var cookieParser = require('cookie-parser');
 var Tesseract = require('tesseract.js');
 var Spotify = require('./spotify.js');
+var Tracklist = require('./tracklist.js');
 require('dotenv').config();
 
 // Spotify API keys
@@ -28,6 +29,19 @@ app.use(express.static(path.join(__dirname + '/public')))
 
 app.get('/', function(req, res) {
 
+});
+
+app.get('/test', function(req, res) {
+	var trax = new Tracklist(100);
+	console.log(trax.numSublists);
+	console.log(trax['tracks0-100'].length);
+	for (var i = 0; i < 150; i++) {
+		var j = new String(i);
+		trax.addTrack("hoopla" + j);
+	}
+	console.log(trax['tracks0-100'].length);
+	console.log(trax);
+	res.redirect('/');
 });
 
 app.post('/upload', function(req, res, next) {
@@ -68,12 +82,18 @@ app.get('/callback', function(req, res) {
 	var storedState = req.cookies ? req.cookies[stateKey] : null;
 
 	//var testArtists = ["beyonce", "radiohead", "oh wonder", "9sxL-"];
+	var capacity = 100;
+
 	var tracks = [];
+	var trax = new Tracklist(capacity);
 	//var artists = testArtists;
-	var artists = leggo.slice(0,100);
+	//var artists = leggo.slice(0,100);
+	var artists = leggo;
 
 	var artistsToSearch = artists.length;
 	var artistsSearched = 0;
+
+	var numSublists = (artistsToSearch / capacity) + 1;
 
 	//var numTimesAddedTrack = 0; // Should be 1
 
@@ -116,19 +136,31 @@ app.get('/callback', function(req, res) {
 
 								if (err && artistsSearched != artistsToSearch) return console.error(err);
 
-								else if (!err && artistsSearched != artistsToSearch) tracks.push(trackURI);
+								else if (!err && artistsSearched != artistsToSearch) trax.addTrack(trackURI);
+								//else if (!err && artistsSearched != artistsToSearch) tracks.push(trackURI);
 
 								if (artistsSearched == artistsToSearch) {
 
-									if (!err) tracks.push(trackURI);							
+									//if (!err) tracks.push(trackURI);
+									if (!err) trax.addTrack(trackURI);
 									
-									Spotify.addTracks(tracks, user, playlist, access_token, function(err, data) {
+									for (var i = 1; i <= numSublists; i++) {
+										var currentSublist = new String(trax.getKey(i));
+										console.log('currentSublist: ' + currentSublist);
+										console.log(trax);
+										Spotify.addTracks(trax[currentSublist], user, playlist, access_token, function(err, data) {
+											if (err) return console.error(err);
+
+											console.log('i swear to god if this works lmfao');
+										});
+									}
+									//Spotify.addTracks(tracks, user, playlist, access_token, function(err, data) {
 										//console.log('Attempting to add tracks: ' + tracks);
 										/*
 										numTimesAddedTrack++;
 										console.log('addTracks calls = ' + numTimesAddedTrack);
 										*/
-										if (err) return console.error(err);
+									//	if (err) return console.error(err);
 /*
 										if (data.retryAfter > 0) {
 											setTimeout(function(tracks, user, playlist, access_token) {
@@ -137,7 +169,7 @@ app.get('/callback', function(req, res) {
 												})
 											}, data.retryAfter * 1000 + 1000);
 										}*/
-									});
+									//});
 								}
 							});
 						});
