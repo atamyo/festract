@@ -14,8 +14,8 @@ Tracklist.prototype.createSublist = function() {
 Tracklist.prototype.addTrack = function(trackURI) {
 	var currentKey = generateKey(this.numSublists, this.capacity);
 
-	if (this[currentKey].length >= this.capacity) {
-	//if (isFull(this[currentKey].length, this.capacity)) {
+	//if (this[currentKey].length >= this.capacity) {
+	if (isFull(this[currentKey], this.capacity)) {
 		this.numSublists++;
 		currentKey = generateKey(this.numSublists, this.capacity);
 		this[currentKey] = [];
@@ -29,11 +29,11 @@ Tracklist.prototype.getKey = function(index) {
 	return generateKey(index, this.capacity);
 }
 
-/*
-function isFull(length, max) {
-	return max > length;
+
+function isFull(sublist, max) {
+	return sublist.length >= max;
 }
-*/
+
 
 function generateKey(num, max) {
 	var start = (num - 1) * max;

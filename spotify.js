@@ -56,36 +56,48 @@ module.exports = {
 		request.get(options, function(error, response, body) {
 			if (error) return callback(error);
 
-			else if (typeof body.tracks === "undefined") {
-				return callback("Some kinda getTopTrack error");
-			}
+			var topTrack = body;
 
-			else if (body.tracks.items.length === 0) {
-				return callback("Couldn't find track for artist '" + artist + "'");
-			}
+			if (response.statusCode === 429) {
+				//TODO: add these tracks if found after addTracks is called
 
-			console.log('Found track ' + body.tracks.items[0].name + ' for artist ' + artist);
-			callback(null, body.tracks.items[0].uri);
+				var waitTime = response.headers['retry-after'] * 1000 + 1000;
+				console.log('getTopTrack rate limit, hold on for ' + waitTime/1000 + ' secs');
+				setTimeout(function() {
+					request.get(options, function(error, response, body) {
+						if (error) return callback(error);
+
+						console.log("...and we're back");
+						topTrack = body;
+
+						if (typeof topTrack.tracks === "undefined") {
+							return callback("Some kinda getTopTrack error");
+						}
+
+						if (topTrack.tracks.items.length === 0) {
+							return callback("Couldn't find track for artist '" + artist + "'");
+						}
+
+						console.log('Found track ' + topTrack.tracks.items[0].name + ' for artist ' + artist);
+						callback(null, topTrack.tracks.items[0].uri);
+						
+					});
+				}, waitTime);
+			}
+			else {
+				if (typeof topTrack.tracks === "undefined") {
+					return callback("Some kinda getTopTrack error");
+				}
+
+				if (topTrack.tracks.items.length === 0) {
+					return callback("Couldn't find track for artist '" + artist + "'");
+				}
+
+				console.log('Found track ' + topTrack.tracks.items[0].name + ' for artist ' + artist);
+				callback(null, topTrack.tracks.items[0].uri);
+			}
 		});
 	},
-/*
-	addTrack: function(trackURI, userID, playlistID, accessToken, callback) {
-		var options = {
-			url: 'https://api.spotify.com/v1/users/' + userID + '/playlists/' + playlistID + '/tracks',
-			headers: {
-				'Authorization': 'Bearer ' + accessToken,
-				'Content-Type': 'application/json'
-			},
-			form: JSON.stringify({ uris: [trackURI] }),
-			json: true
-		};
-
-		request.post(options, function(error, response, body) {
-			if (error) return callback(error);
-
-			callback(null, body);
-		});
-	},*/
 
 	addTracks: function(trackURIs, userID, playlistID, accessToken, callback) {
 		var options = {

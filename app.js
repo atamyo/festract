@@ -16,6 +16,8 @@ var redirect_uri = process.env.REDIRECT_URI;
 
 var stateKey = 'spotify_auth_state';
 
+// TODO: handle duplicate found tracks
+
 // TODO: replace this global variable lol
 var leggo;
 
@@ -47,7 +49,11 @@ app.get('/test', function(req, res) {
 app.post('/upload', function(req, res, next) {
 	// Upload lineup image
 	var lineup = req.files.uploaded;
-	if (lineup.mimetype.substr(0,5) == 'image') {
+
+	// TODO: send upload error message to view
+	if (typeof lineup === "undefined") console.log("Didn't upload image.");
+
+	else if (lineup.mimetype.substr(0,5) == 'image') {
 		var ext = lineup.mimetype.substr(6);
 		var lineupPath = path.join(__dirname + '/uploads/lineup.' + ext);
 		lineup.mv(lineupPath, function(err) {
@@ -84,18 +90,12 @@ app.get('/callback', function(req, res) {
 	//var testArtists = ["beyonce", "radiohead", "oh wonder", "9sxL-"];
 	var capacity = 100;
 
-	var tracks = [];
-	var trax = new Tracklist(capacity);
+	var tracks = new Tracklist(capacity);
 	//var artists = testArtists;
-	//var artists = leggo.slice(0,100);
 	var artists = leggo;
 
 	var artistsToSearch = artists.length;
 	var artistsSearched = 0;
-
-	var numSublists = (artistsToSearch / capacity) + 1;
-
-	//var numTimesAddedTrack = 0; // Should be 1
 
 	// Request refresh and access tokens
 	if (state === null || state !== storedState) {
@@ -136,40 +136,22 @@ app.get('/callback', function(req, res) {
 
 								if (err && artistsSearched != artistsToSearch) return console.error(err);
 
-								else if (!err && artistsSearched != artistsToSearch) trax.addTrack(trackURI);
-								//else if (!err && artistsSearched != artistsToSearch) tracks.push(trackURI);
+								else if (!err && artistsSearched != artistsToSearch) tracks.addTrack(trackURI);
 
 								if (artistsSearched == artistsToSearch) {
+									if (!err) tracks.addTrack(trackURI); // add last artist's track, if valid
 
-									//if (!err) tracks.push(trackURI);
-									if (!err) trax.addTrack(trackURI);
+									for (var i = 1; i <= tracks.numSublists; i++) {
+										var currentSublist = new String(tracks.getKey(i));
+										//console.log('currentSublist: ' + currentSublist);
+										//console.log(tracks);
 									
-									for (var i = 1; i <= numSublists; i++) {
-										var currentSublist = new String(trax.getKey(i));
-										console.log('currentSublist: ' + currentSublist);
-										console.log(trax);
-										Spotify.addTracks(trax[currentSublist], user, playlist, access_token, function(err, data) {
+										Spotify.addTracks(tracks[currentSublist], user, playlist, access_token, function(err, data) {
 											if (err) return console.error(err);
 
 											console.log('i swear to god if this works lmfao');
 										});
 									}
-									//Spotify.addTracks(tracks, user, playlist, access_token, function(err, data) {
-										//console.log('Attempting to add tracks: ' + tracks);
-										/*
-										numTimesAddedTrack++;
-										console.log('addTracks calls = ' + numTimesAddedTrack);
-										*/
-									//	if (err) return console.error(err);
-/*
-										if (data.retryAfter > 0) {
-											setTimeout(function(tracks, user, playlist, access_token) {
-												Spotify.addTracks(tracks, user, playlist, access_token, function(err, data) {
-													if (err) return console.error(err);
-												})
-											}, data.retryAfter * 1000 + 1000);
-										}*/
-									//});
 								}
 							});
 						});
