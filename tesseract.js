@@ -1,9 +1,5 @@
 var TesseractJS = require('tesseract.js');
 
-exports.generateResultList = function(url) {
-	return runOCR(url);
-};
-
 function runOCR(url) {
 	TesseractJS.recognize(url)
     	.progress(function(progress) {
@@ -42,12 +38,12 @@ function spellCheck(resultsList) {
 }
 
 function splitResults(results, separator) {
-	// TODO: Add \n newline separator
 	var re = separator === null ? /\s\W\s|\s\d\s/ : /\s\W\s|\s\d\s/;
-	//var separator = /\s\W\s|\s\d\s/;
 	var artists = results.split(re);
 
-	//console.log("artist list: " + artists);
 	return artists;
-
 }
+
+exports.generateResultList = function(url) {
+	return runOCR(url);
+};
