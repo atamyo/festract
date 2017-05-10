@@ -4,6 +4,7 @@ var express = require('express');
 var request = require('request');
 var fileUpload = require('express-fileupload');
 var cookieParser = require('cookie-parser');
+var helmet = require('helmet');
 var Tesseract = require('./tesseract.js');
 var Spotify = require('./spotify.js');
 var Tracklist = require('./tracklist.js');
@@ -23,12 +24,12 @@ var stateKey = 'spotify_auth_state';
 var leggo;
 
 var app = express();
-const PORT = 8888;
+const PORT = 4200;
 
 app.set('port', PORT);
 
 app.use(express.static(path.join(__dirname + '/public')))
-	.use(cookieParser()).use(fileUpload());
+	.use(cookieParser()).use(fileUpload()).use(helmet());
 
 app.get('/', function(req, res) {
 
@@ -50,7 +51,11 @@ app.post('/upload', function(req, res, next) {
 			if (err) {
 				res.status(500).send(err);
 			} else {
-				leggo = Tesseract.generateResultList(lineupPath);
+				Tesseract.generateResultList(lineupPath, function(err, data) {
+					if (err) return console.error(err);
+					
+					leggo = data;
+				});
 			}
 		});
 	}
